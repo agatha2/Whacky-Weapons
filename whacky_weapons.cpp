@@ -383,7 +383,7 @@ class WhackyWeapons final : public bz_Plugin {
 										shot_pos.z += 5.0f - (float)j;
 
 										fire_shot(
-											players[i]->playerID, rainbow_colors[j],
+											players[i]->playerID, rainbow_colors[j], "NC",
 											shot_pos, (player_vel+shot_vel)/bzdb_shot_speed
 										);
 
@@ -497,7 +497,7 @@ class WhackyWeapons final : public bz_Plugin {
 
 						fvec3 shot_vel = (velfactor*bzdb_shot_speed) * shot_vec;
 						fire_shot(
-							player->playerID, player_color,
+							player->playerID, player_color, "AA",
 							player_pos+fvec3(0.0f,0.0f,5.0f), (player_vel+shot_vel)/bzdb_shot_speed
 						);
 					}
@@ -518,16 +518,8 @@ class WhackyWeapons final : public bz_Plugin {
 						cancel_firing_shot(data);
 
 						float factor = static_cast<float>(bz_getBZDBDouble("_wwLBfactor"));
-						//Make a "thick" bunch of lasers firing downward
 						fvec3 pos = player_pos+fvec3(factor*fvec2(player_vel[0],player_vel[1]),100.0f);
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3(-1.0f, 0.0f,0.0f), fvec3( 1.0f,-1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3(-1.0f, 0.0f,0.0f), fvec3( 1.0f, 1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3( 1.0f, 0.0f,0.0f), fvec3(-1.0f,-1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3( 1.0f, 0.0f,0.0f), fvec3(-1.0f, 1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3( 0.0f,-1.0f,0.0f), fvec3(-1.0f, 1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3( 0.0f,-1.0f,0.0f), fvec3( 1.0f, 1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3( 0.0f, 1.0f,0.0f), fvec3(-1.0f,-1.0f,-100.0f)/bzdb_shot_speed );
-						fire_laser( player->playerID, bz_eTeamType::eRogueTeam, pos+fvec3( 0.0f, 1.0f,0.0f), fvec3( 1.0f,-1.0f,-100.0f)/bzdb_shot_speed );
+						fire_smite(player->playerID,pos);
 					}
 					/*else if (current_flag=="MR") {
 						//TODO
@@ -567,8 +559,8 @@ class WhackyWeapons final : public bz_Plugin {
 						fvec3 shot_vel_r = shot_vec_r + player_vel;
 
 						//TODO: crashes the server for some reason
-						fire_gm( player->playerID, player_color, player_pos, shot_vel_l/bzdb_shot_speed, -1 );
-						fire_gm( player->playerID, player_color, player_pos, shot_vel_r/bzdb_shot_speed, -1 );
+						fire_gm( player->playerID, player_color, "SM", player_pos, shot_vel_l/bzdb_shot_speed, -1 );
+						fire_gm( player->playerID, player_color, "SM", player_pos, shot_vel_r/bzdb_shot_speed, -1 );
 					}
 					/*else if (current_flag=="SS") {
 						//TODO
@@ -623,10 +615,16 @@ class WhackyWeapons final : public bz_Plugin {
 			);*/
 		}
 
-		void fire_something( int from_player_id, bz_eTeamType color, char const* type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id=-1 ) {
+		uint32_t fire_something( int from_player_id, bz_eTeamType color, char const* internal_type,char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id=-1 ) {
 			float origin[3]={pos.x,pos.y,pos.z}, vector[3]={vel_dived_by_bzdb_shotspeed.x,vel_dived_by_bzdb_shotspeed.y,vel_dived_by_bzdb_shotspeed.z};
 			//`vector` times BZDB shot speed is the velocity.  See WorldWeapons.cxx line 47.
-			uint32_t shot_guid = bz_fireServerShot( type, origin,vector, color, at_player_id );
+			uint32_t shot_guid = bz_fireServerShot( internal_type, origin,vector, color, at_player_id );
+
+			// Whacky Weapons Type; identifies the shot as coming from this plugin and the weapon
+			// type it came from.
+			bz_setShotMetaData(shot_guid,"wwType",ww_type);
+			// The shot is fired by the server, but if it hits anybody, this is who we credit as the
+			// killer when they die.
 			bz_setShotMetaData(shot_guid,"owner",(uint32_t)from_player_id);
 
 			/*printf("Shot %u \"%s\" from %d (col %d): %.3f %.3f %.3f -> %.3f %.3f %.3f\n",
@@ -634,21 +632,46 @@ class WhackyWeapons final : public bz_Plugin {
 				(double)origin[0], (double)origin[1], (double)origin[2],
 				(double)vector[0], (double)vector[1], (double)vector[2]
 			);*/
+
+			return shot_guid;
 		}
-		void fire_shot     ( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
-			fire_something( from_player_id, color, "US", pos,vel_dived_by_bzdb_shotspeed );
+		uint32_t fire_shot     ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
+			return fire_something( from_player_id, color, "US",ww_type, pos,vel_dived_by_bzdb_shotspeed );
 		}
-		void fire_supershot( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
-			fire_something( from_player_id, color, "SB", pos,vel_dived_by_bzdb_shotspeed );
+		uint32_t fire_supershot( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
+			return fire_something( from_player_id, color, "SB",ww_type, pos,vel_dived_by_bzdb_shotspeed );
 		}
-		void fire_laser    ( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
-			fire_something( from_player_id, color, "L", pos,vel_dived_by_bzdb_shotspeed );
+		uint32_t fire_laser    ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
+			return fire_something( from_player_id, color, "L",ww_type, pos,vel_dived_by_bzdb_shotspeed );
 		}
-		void fire_gm       ( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id ) {
-			fire_something( from_player_id, color, "GM", pos,vel_dived_by_bzdb_shotspeed, at_player_id );
+		uint32_t fire_gm       ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id ) {
+			return fire_something( from_player_id, color, "GM",ww_type, pos,vel_dived_by_bzdb_shotspeed, at_player_id );
 		}
-		void fire_sw       ( int from_player_id, bz_eTeamType color, fvec3 const& pos ) {
-			fire_something( from_player_id, color, "SW", pos,fvec3(0.0f,0.0f,0.0f) );
+		uint32_t fire_sw       ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos ) {
+			return fire_something( from_player_id, color, "SW",ww_type, pos,fvec3(0.0f,0.0f,0.0f) );
+		}
+		void     fire_smite( int from_player_id, fvec3 const& pos ) {
+			//Makes a "thick" bunch of lasers firing downward
+
+			auto draw_laser_between = [&](fvec3 const& relp0,fvec3 const& relp1) -> void {
+				fire_laser( from_player_id, bz_eTeamType::eRogueTeam, "LB", pos+relp0,relp1-relp0 );
+			};
+
+			//Length that the laser needs to be so that the laser exactly reaches from sky to ground.
+			float vec_length = static_cast<float>( bz_getBZDBDouble("_laserAdVel") / bz_getBZDBDouble("_shotSpeed") );
+			//Height above the ground that corresponds to
+			float height = std::sqrt( vec_length*vec_length - 0.5857864376f ); //sqrt(2) - 2
+
+			for (int i=0;i<8;++i) {
+				float angle0  = (float)i * ( 0.125f * 2.0f*PI );
+				float angle1a = angle0 - 0.25f*PI;
+				float angle1b = angle0 + 0.25f*PI;
+				fvec3 relp0  = fvec3( std::cos(angle0 ),std::sin(angle0 ), height );
+				fvec3 relp1a = fvec3( std::cos(angle1a),std::sin(angle1a),   0.0f );
+				fvec3 relp1b = fvec3( std::cos(angle1b),std::sin(angle1b),   0.0f );
+				draw_laser_between(relp0,relp1a);
+				draw_laser_between(relp0,relp1b);
+			}
 		}
 
 		void cancel_firing_shot(bz_ShotFiredEventData_V1* data) {
