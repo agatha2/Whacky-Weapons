@@ -199,6 +199,7 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 			Register(bz_eTickEvent        );
 			Register(bz_eShotFiredEvent   );
 			Register(bz_ePlayerUpdateEvent);
+			Register(bz_ePlayerDieEvent   );
 
 			bz_registerCustomSlashCommand("smite",this);
 
@@ -583,6 +584,20 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 				case bz_ePlayerUpdateEvent: {
 					bz_PlayerUpdateEventData_V1* data = reinterpret_cast<bz_PlayerUpdateEventData_V1*>(event_data);
 					players_last_update_times[data->playerID] = data->stateTime;
+					break;
+				}
+
+				case bz_ePlayerDieEvent: {
+					bz_PlayerDieEventData_V1* data = reinterpret_cast<bz_PlayerDieEventData_V1*>(event_data);
+
+					uint32_t shot_guid = bz_getShotGUID(data->killerID, data->shotID);
+
+					if (bz_shotHasMetaData(shot_guid,"wwType")) {
+						//std::string weapon = bz_getShotMetaDataS(shot_guid, "wwType");
+
+						data->killerID = bz_getShotMetaDataI(shot_guid, "owner");
+					}
+
 					break;
 				}
 
