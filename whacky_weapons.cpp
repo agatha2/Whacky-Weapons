@@ -1,5 +1,5 @@
 /*
-	Agatha, 2020ï¿½2021
+	Agatha, 2020–2021
 
 	MIT License.
 
@@ -209,6 +209,9 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 				bz_registerCustomBZDBDouble("_wwAAdeflect",   0.5, 0, false);
 				bz_registerCustomBZDBDouble("_wwAAvelfactor", 2.0, 0, false);
 
+				//Ball Lightning (BL)
+				//bz_RegisterCustomFlag("BL", "Ball Lightning", "Creates a lightning ball that zaps enemies.", 0, eGoodFlag);
+
 				//Flamethrower (FL)
 				//bz_RegisterCustomFlag("FL", "Flamethrower", "Shooting creates a small patch of fire that persists for some time.", 0, eGoodFlag);
 
@@ -235,14 +238,23 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 				bz_registerCustomBZDBDouble("_wwNCvelfactor",   1.00, 0, false);
 				bz_registerCustomBZDBDouble("_wwNCspreadangle", 0.50, 0, false);
 
+				//Orion Drive (OD)
+				//bz_RegisterCustomFlag("OD", "Orion Drive", "Shooting triggers an explosion that yeets your tank forward.", 0, eGoodFlag);
+
 				//Perpendicular Laser (PL)
 				//bz_RegisterCustomFlag("PL", "Perpendicular Laser", "Laser starts at first bounce, and comes out perpendicular to the surface instead.", 0, eGoodFlag);
+
+				//Phoenix (PX)
+				//bz_RegisterCustomFlag("PX", "Phoenix", "You respawn where you last died, creating a shockwave.", 0, eGoodFlag);
 
 				//Railgun (RA)
 				//bz_RegisterCustomFlag("RA", "Railgun", "Fires a very fast projectile through walls that leaves a destructive sonic boom.  Long reload.", 0, eGoodFlag);
 
 				//Rico Laser (RL)
 				//bz_RegisterCustomFlag("RL", "Rico Laser", "Laser only exists after first bounce.", 0, eGoodFlag);
+
+				//Snowball Inhibitor
+				//bz_RegisterCustomFlag("SI", "Snowball Inhibitor", "Fires a snowball that freezes the enemy tank's gun.", 0, eGoodFlag); //rabbit shots
 
 				//Sidewinder Missiles (SM)
 				bz_RegisterCustomFlag("SM", "Sidewinder Missiles", "Fires two guided missiles sideways instead of a single missile forward", 0, eGoodFlag);
@@ -506,7 +518,10 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 							player_pos+fvec3(0.0f,0.0f,5.0f), (player_vel+shot_vel)/bzdb_shot_speed
 						);
 					}
-					/*else if (current_flag=="FL") {
+					/*else if (current_flag=="BL") {
+						//TODO
+					}
+					else if (current_flag=="FL") {
 						cancel_firing_shot(data);
 						//TODO
 					}
@@ -532,7 +547,13 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 					else if (current_flag=="NC") {
 						cancel_firing_shot(data);
 					}
-					/*else if (current_flag=="PL") {
+					/*else if (current_flag=="OD") {
+						//TODO
+					}
+					else if (current_flag=="PL") {
+						//TODO
+					}
+					else if (current_flag=="PX") {
 						//TODO
 					}
 					else if (current_flag=="RA") {
@@ -551,6 +572,9 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 						//TODO
 					}
 					else if (current_flag=="RL") {
+						//TODO
+					}
+					else if (current_flag=="SI") {
 						//TODO
 					}*/
 					else if (current_flag=="SM") {

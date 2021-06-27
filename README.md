@@ -45,6 +45,10 @@ You cannot shoot forward, but rainbow bullets spew uncontrollably backward.  Ins
 
 ## Planned Flags
 
+### Ball Lightning (BL) (NOT IMPLEMENTED)
+
+Creates a ball of "lightning" (rogue shots and short lasers) that travels forward slowly.  If an enemy tank is close, the ball lashes out (longer laser) toward that tank.
+
 ### Flamethrower (FL) (NOT IMPLEMENTED)
 
 Shooting creates a small patch of fire (shot explosions) that persists for some time.
@@ -76,11 +80,19 @@ Variant: when it turns, maybe we should also create another bullet (two bullets?
 
 Shooting makes a bullet that travels along the trajectory your tank would take if you forward-jumped: the bullet takes a parabolic path.  When it lands, it "explodes" (creates a small SW).  Inspired by the (often-disingenuously-)[rejected flags page](https://wiki.bzflag.org/Rejected_flag_ideas#MortarBomb_.28MB.29).
 
+### Orion Drive (OD) (NOT IMPLEMENTED)
+
+Shooting triggers an explosion (SW) that yeets your tank forward and slightly upward.  Inspired by the [Orion nuclear pulse drive](https://en.wikipedia.org/wiki/Project_Orion_(nuclear_propulsion)).
+
 ### Perpendicular Laser (PL) (NOT IMPLEMENTED)
 
 Cannot shoot forward.  Instead, the first surface the tank's shot would hit sprouts a laser emerging perpendicularly from (i.e. normal to) the surface.  Variant: the laser doesn't bounce afterward.
 
 Implementation is currently impossible because the plugin system has no facilities to compute intersections with the world.
+
+### Phoenix (PX) (NOT IMPLEMENTED)
+
+When a tank dies with this flag, it respawns at the same location.  Just before respawning, a shockwave is triggered, destroying enemies.  The idea is that the player can lie in wait at their death location until another tank comes along; additionally useful for systematically denying camping points.
 
 ### Railgun (RA) (NOT IMPLEMENTED)
 
@@ -91,6 +103,10 @@ Fires a very fast projectile that penetrates walls like a super bullet and also 
 Like an ordinary Laser (L) flag, except beams only exist *after* the first bounce.  That is, you *cannot* shoot a tank directly, but you *can* hit them via ricos.  The aim of this flag is to teach people how to use the ordinary L flag *correctly*: that is, by utilizing and generally being aware of the ricos, instead of spraying coherent light straight ahead and hoping it hits something immediately.
 
 Disappointingly, again, implementation is currently impossible because the plugin system has no facilities to compute intersections with the world.
+
+### Snowball Inhibitor (SI) (NOT IMPLEMENTED)
+
+Shot prevents an opponent from firing (variant: and moving) by "freezing" them, allowing allies to attack.
 
 ### Sidewinder Missiles (SM) (PARTIALLY IMPLEMENTED)
 
@@ -124,11 +140,11 @@ Compare to the Fractal (FR) flag, which can split more, but is not SB.
 
 ---
 
-## Fun Modifications to Existing Flags You Might Try
+## Potential Stock Flag Modifications Under Consideration
 
-Totally optional, but might make things more interesting.
-
-- GM: make it super slow, but have an infinite turning rate.
+- GM: super slow, but high turning rate
+- V: leaves a trail of SW behind when at speed, like a sonic boom.  Slow turn rate.
+- BU: fast, but below ground, so can only be hit by SW, and can't shoot
 
 
 
