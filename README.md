@@ -45,7 +45,7 @@ You cannot shoot forward, but rainbow bullets spew uncontrollably backward.  Ins
 
 ### Flamethrower (FL) (NOT IMPLEMENTED)
 
-Shooting creates a small patch of fire (SWs) that persists for some time.
+Shooting creates a small patch of fire (shot explosions) that persists for some time.
 
 ### Fractal (FR) (NOT IMPLEMENTED)
 

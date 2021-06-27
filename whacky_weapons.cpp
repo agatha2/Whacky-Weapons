@@ -1,5 +1,5 @@
 /*
-	Agatha, 2021
+	Agatha, 2020�2021
 
 	MIT License.
 
@@ -20,6 +20,7 @@
 	you've got to try!!!
  */
 
+#include <cassert>
 #include <cmath>
 
 #include <algorithm>
@@ -39,6 +40,7 @@
 	#include "../../bzflag/src/bzfs/bzfs.h"
 #else
 	#include "bzfsAPI.h"
+	//#include "plugin_utils.h"
 	#include "../src/bzfs/bzfs.h"
 #endif
 
@@ -296,7 +298,7 @@ class WhackyWeapons final : public bz_Plugin {
 
 					// Ensure that the client has version 2.4.22 or newer.  This is required for the
 					// cancel_firing_shot member function below.
-					bz_debugMessagef( 2, "Player \"%s\" (%d) sent version string: \"%s\"\n", data->record->callsign,data->playerID, data->record->clientVersion.c_str() );
+					bz_debugMessagef( 2, "Player \"%s\" (%d) sent version string: \"%s\"\n", data->record->callsign.c_str(),data->playerID, data->record->clientVersion.c_str() );
 					if (!version_is_parsable_and_at_least( data->record->clientVersion, 2,4,22 )) {
 						if (data->record->team==bz_eTeamType::eObservers) {
 							std::string msg =
@@ -304,17 +306,22 @@ class WhackyWeapons final : public bz_Plugin {
 								(std::string)data->record->clientVersion+
 								"\" is unparseable or less than this.  Please update your bzflag if you would like to play!"
 							;
-							bz_sendTextMessage(ServerPlayer,data->playerID,bz_eMessageType::eActionMessage,msg.c_str());
+							bz_sendTextMessage(BZ_SERVER,data->playerID,bz_eMessageType::eActionMessage,msg.c_str());
 						} else {
 							std::string msg =
 								"ERROR: This server has a plugin that requires bzflag version 2.4.22 or newer to play.  Your version \""+
 								(std::string)data->record->clientVersion+
 								"\" is unparseable or less than this.  Please update your bzflag and try again (or you can join as an observer)!"
 							;
-							bz_sendTextMessage(ServerPlayer,data->playerID,bz_eMessageType::eActionMessage,msg.c_str());
+							bz_sendTextMessage(BZ_SERVER,data->playerID,bz_eMessageType::eActionMessage,msg.c_str());
 
 							bz_kickUser(data->playerID,"bzflag version unknown or too old",false);
 						}
+						bz_sendTextMessagef(
+							BZ_SERVER,BZ_ADMINCHAT,bz_eMessageType::eChatMessage,
+							"Player \"%s\" tried to join, but has a client that is too old.%s", data->record->callsign.c_str(),
+							data->record->team==bz_eTeamType::eObservers ? "" : "  They were yeeted."
+						);
 					}
 
 					break;
@@ -445,7 +452,7 @@ class WhackyWeapons final : public bz_Plugin {
 					for (bz_BasePlayerRecord* player2 : players) {
 						if (player2!=nullptr&&player2->playerID==data->playerID) { player=player2; break; }
 					}
-					if (player==nullptr) break; //Shouldn't happen, but maybe it does.
+					assert(player!=nullptr);
 
 					std::string current_flag = get_player_flag_abbrev(player);
 					if (current_flag.empty()) break;
@@ -559,6 +566,7 @@ class WhackyWeapons final : public bz_Plugin {
 						fvec3 shot_vel_l = shot_vec_l + player_vel;
 						fvec3 shot_vel_r = shot_vec_r + player_vel;
 
+						//TODO: crashes the server for some reason
 						fire_gm( player->playerID, player_color, player_pos, shot_vel_l/bzdb_shot_speed, -1 );
 						fire_gm( player->playerID, player_color, player_pos, shot_vel_r/bzdb_shot_speed, -1 );
 					}
@@ -615,11 +623,11 @@ class WhackyWeapons final : public bz_Plugin {
 			);*/
 		}
 
-		void fire_something( int player_id, bz_eTeamType color, char const* type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id=-1 ) {
+		void fire_something( int from_player_id, bz_eTeamType color, char const* type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id=-1 ) {
 			float origin[3]={pos.x,pos.y,pos.z}, vector[3]={vel_dived_by_bzdb_shotspeed.x,vel_dived_by_bzdb_shotspeed.y,vel_dived_by_bzdb_shotspeed.z};
 			//`vector` times BZDB shot speed is the velocity.  See WorldWeapons.cxx line 47.
 			uint32_t shot_guid = bz_fireServerShot( type, origin,vector, color, at_player_id );
-			bz_setShotMetaData(shot_guid,"owner",(uint32_t)player_id);
+			bz_setShotMetaData(shot_guid,"owner",(uint32_t)from_player_id);
 
 			/*printf("Shot %u \"%s\" from %d (col %d): %.3f %.3f %.3f -> %.3f %.3f %.3f\n",
 				shot_guid, type, player_id, (int)color,
@@ -627,20 +635,20 @@ class WhackyWeapons final : public bz_Plugin {
 				(double)vector[0], (double)vector[1], (double)vector[2]
 			);*/
 		}
-		void fire_shot     ( int player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
-			fire_something( player_id, color, "US", pos,vel_dived_by_bzdb_shotspeed );
+		void fire_shot     ( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
+			fire_something( from_player_id, color, "US", pos,vel_dived_by_bzdb_shotspeed );
 		}
-		void fire_supershot( int player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
-			fire_something( player_id, color, "SB", pos,vel_dived_by_bzdb_shotspeed );
+		void fire_supershot( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
+			fire_something( from_player_id, color, "SB", pos,vel_dived_by_bzdb_shotspeed );
 		}
-		void fire_laser    ( int player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
-			fire_something( player_id, color, "L", pos,vel_dived_by_bzdb_shotspeed );
+		void fire_laser    ( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
+			fire_something( from_player_id, color, "L", pos,vel_dived_by_bzdb_shotspeed );
 		}
-		void fire_gm       ( int player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id ) {
-			fire_something( player_id, color, "GM", pos,vel_dived_by_bzdb_shotspeed, at_player_id );
+		void fire_gm       ( int from_player_id, bz_eTeamType color, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id ) {
+			fire_something( from_player_id, color, "GM", pos,vel_dived_by_bzdb_shotspeed, at_player_id );
 		}
-		void fire_sw       ( int player_id, bz_eTeamType color, fvec3 const& pos ) {
-			fire_something( player_id, color, "SW", pos,fvec3(0.0f,0.0f,0.0f) );
+		void fire_sw       ( int from_player_id, bz_eTeamType color, fvec3 const& pos ) {
+			fire_something( from_player_id, color, "SW", pos,fvec3(0.0f,0.0f,0.0f) );
 		}
 
 		void cancel_firing_shot(bz_ShotFiredEventData_V1* data) {
@@ -650,7 +658,9 @@ class WhackyWeapons final : public bz_Plugin {
 			it to other clients, and (2) we need to tell the client to delete their shots, so that
 			the user does not see it.
 
-			Doing (1) is fairly easy.  See src/bzfs/bzfs.cxx 4208 for this undocumented feature.
+			Doing (1) is actually fairly easy.  See src/bzfs/bzfs.cxx line 4208 for this
+			undocumented feature.  Unfortunately, the user will have already played a sound, but
+			there's only so much we can do.
 			*/
 			data->type = "DELETE";
 			data->changed = true;
@@ -660,14 +670,15 @@ class WhackyWeapons final : public bz_Plugin {
 			message (see src/bzfs/bzfs.cxx 4290).
 
 			The shot ID provided by bz_ShotFiredEventData_V1 was, until recently, bogus.  Please
-			ensure your bzfs is up to date if it still looks like clients can shoot.
-
-			See also:
+			ensure your bzfs is up to date if it still looks like clients can shoot.  See also:
 				https://gist.github.com/agatha2/3305591e2282b8eb47fbc9742135b171
 				https://github.com/BZFlag-Dev/bzflag/pull/260
 				https://github.com/BZFlag-Dev/bzflag/commit/bbcf0a888203c40d25dc2bee389bce98ae793eb9
 				I.e., this was fixed by release v2.4.22.  Clients with versions less than this will
 				be rejected on join (see above).
+
+			This is a hack, and it relies on functionality that isn't in the BZFS API.  This causes
+			linker problems on Windows.  (TODO: resolve?)
 			*/
 			#if 1
 			#if 0 //Requires include from main bzflag, which leads to linker issues on Windows
