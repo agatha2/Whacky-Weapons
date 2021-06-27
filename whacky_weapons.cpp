@@ -25,6 +25,7 @@
 
 #include <algorithm>
 
+#include <array>
 #include <map>
 #include <set>
 #include <vector>
@@ -55,6 +56,23 @@ inline static float random_float(float low,float high) {
 
 inline static float to_radians(float angle_in_degrees) {
 	return angle_in_degrees * (PI/180.0f);
+}
+
+static std::string exec(char const* cmd) {
+	//https://stackoverflow.com/a/478960
+	std::array<char,128> buffer;
+	std::string result;
+	#ifdef _WIN32
+	std::unique_ptr<FILE,decltype(&_pclose)> pipe(_popen(cmd,"r"),_pclose);
+	if (!pipe) throw std::runtime_error("_popen() failed!");
+	#else
+	std::unique_ptr<FILE,decltype(&pclose)> pipe(popen(cmd,"r"),pclose);
+	if (!pipe) throw std::runtime_error("popen() failed!");
+	#endif
+	while (fgets(buffer.data(),buffer.size(),pipe.get())!=nullptr) {
+		result += buffer.data();
+	}
+	return result;
 }
 
 /*static fvec3 rotate_vector_around_z(fvec3 const& vec, float angle_in_radians) {
@@ -187,12 +205,21 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 
 		double nc_nextfiretime = -1.0;
 
+		std::string plugin_name;
+
 		/*struct TridentRecord final { double splittime; ShotRecord* rec; };
 		std::set<struct TridentRecord> tn_bulletsneedingsplit;*/
 
 	public:
+		WhackyWeapons() {
+			//std::string build = exec("git rev-parse HEAD");
+			std::string build = exec("git show --pretty=\"format:%h at %ci\" --no-patch HEAD");
+			if (build.empty()) build="(unknown build)";
+			plugin_name = "Whacky Weapons Plugin - Agatha 2021 - " + build;
+		}
+
 		virtual char const* Name() override {
-			return "Whacky Weapons Plugin - Agatha 2021";
+			return plugin_name.c_str();
 		}
 		virtual void Init(char const* /*config*/) override {
 			Register(bz_ePlayerJoinEvent  );
