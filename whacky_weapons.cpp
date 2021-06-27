@@ -769,7 +769,23 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 			fvec3 vec = pos1 - pos0;
 			float length = vec.length();
 			float sc = (length+eps) / length; //Scale vector to be a bit longer just to help collisions
-			sc /= (float)( bz_getBZDBDouble("_laserAdVel") * bz_getBZDBDouble("_shotSpeed") * 0.35 );
+
+			/*
+			The length of a laser given a `<vector>` is exactly:
+				<laser length> = <vector's length> * _laserAdVel * _shotSpeed * <laser shot lifetime>
+			Where:
+				<laser shot lifetime> = (_shotRange / _shotSpeed) * _laserAdLife
+
+			If we want to make the laser go exactly `<vector length>`, then by simple algebra we
+			need to multiply the vector we pass in by:
+				`_shotSpeed / ( _shotSpeed * _shotRange * _laserAdVel * _laserAdLife )`
+			*/
+			sc *= (float)( bz_getBZDBDouble("_shotSpeed") / (
+				bz_getBZDBDouble("_shotSpeed") * bz_getBZDBDouble("_shotRange") * bz_getBZDBDouble("_laserAdVel") * bz_getBZDBDouble("_laserAdLife")
+			) );
+
+			//printf("%f %f %f %f\n",bz_getBZDBDouble("_laserAdVel"),bz_getBZDBDouble("_laserAdLife"),bz_getBZDBDouble("_shotRange"),bz_getBZDBDouble("_shotSpeed"));
+
 			return fire_laser( from_player_id, color, ww_type, pos0, sc*vec );
 		}
 		uint32_t fire_gm       ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id ) {
