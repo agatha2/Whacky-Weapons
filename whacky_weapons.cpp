@@ -681,19 +681,12 @@ class WhackyWeapons final : public bz_Plugin {
 			linker problems on Windows.  (TODO: resolve?)
 			*/
 			#if 1
-			#if 0 //Requires include from main bzflag, which leads to linker issues on Windows
-				void *buf, *bufStart=getDirectMessageBuffer();
-				buf = nboPackUByte(bufStart,data->playerID);
-				buf = nboPackShort(buf,data->shotID);
-				buf = nboPackUShort(buf,1); // no explodey
-				directMessage( data->playerID, MsgShotEnd, (char*)buf-(char*)bufStart, bufStart );
-			#else
-				char* buf = getDirectMessageBuffer();
-				memcpy(buf,    &data->playerID,1);
-				memcpy(buf+1,  &data->shotID,2);
-				uint16_t one=1; memcpy(buf+1+2,&one,2);
-				directMessage( data->playerID, MsgShotEnd, 1+2+2, buf );
-			#endif
+			void *buf, *bufStart=getDirectMessageBuffer();
+			//Note these handle network byte order too ("nbo")!
+			buf = nboPackUByte(bufStart,data->playerID);
+			buf = nboPackShort(buf,data->shotID);
+			buf = nboPackUShort(buf,1); // no explodey
+			directMessage( data->playerID, MsgShotEnd, (char*)buf-(char*)bufStart, bufStart );
 			#endif
 
 			//printf("Canceling shot: player %d firing %d!\n",data->playerID,data->shotID);
