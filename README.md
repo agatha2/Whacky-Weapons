@@ -14,7 +14,7 @@ Bullets fire upward, and can be deflected forward/backward by moving forward/bac
 
 | BZDB Variable    | Default Value | Effect |
 | ---------------- | ------------- | ------ |
-| `_wwAAdeflect`   | `0.5`         | Scales the effect of moving forward/backward on the deflection of the bullets. |
+| `_wwAAdeflect`   | `0.3`         | Scales the effect of moving forward/backward on the deflection of the bullets. |
 | `_wwAAvelfactor` | `2.0`         | Scales the shot velocity (relative to built-in `_shotSpeed`). |
 
 ### Lightning Bolt (LB)

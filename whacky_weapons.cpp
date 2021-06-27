@@ -80,7 +80,7 @@ inline static bool version_is_parsable_and_at_least( bz_ApiString const& str, in
 		if      (ver_rev2<ver_rev) return false;
 		#if 0
 		else if (ver_rev2>ver_rev) return true;
-		
+
 		return true;
 		#else //optimization
 		return true;
@@ -206,7 +206,7 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 			{
 				//Anti-Aircraft (AA)
 				bz_RegisterCustomFlag("AA", "Anti-Aircraft", "Bullet fires upward.  Move forward/backward to aim.", 0, eGoodFlag);
-				bz_registerCustomBZDBDouble("_wwAAdeflect",   0.5, 0, false);
+				bz_registerCustomBZDBDouble("_wwAAdeflect",   0.3, 0, false);
 				bz_registerCustomBZDBDouble("_wwAAvelfactor", 2.0, 0, false);
 
 				//Ball Lightning (BL)
@@ -284,7 +284,7 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 
 			bz_removeCustomSlashCommand("smite");
 
-			bz_removeCustomBZDBVariable("_wwAAdeflect");
+			bz_removeCustomBZDBVariable("_wwAAdeflect"  );
 			bz_removeCustomBZDBVariable("_wwAAvelfactor");
 
 			bz_removeCustomBZDBVariable("_wwLBstartheight");
@@ -795,7 +795,8 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 
 			/*
 			Doing (2) is a bit harder.  We're going to adapt the example of the normal MsgShotEnd
-			message (see src/bzfs/bzfs.cxx 4290).
+			message (see "src/bzfs/bzfs.cxx" line 4313):
+				https://github.com/BZFlag-Dev/bzflag/blob/2.4/src/bzfs/bzfs.cxx#L4313
 
 			The shot ID provided by bz_ShotFiredEventData_V1 was, until recently, bogus.  Please
 			ensure your bzfs is up to date if it still looks like clients can shoot.  See also:
