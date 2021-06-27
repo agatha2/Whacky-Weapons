@@ -19,13 +19,15 @@ Bullets fire upward, and can be deflected forward/backward by moving forward/bac
 
 ### Lightning Bolt (LB)
 
-Shooting instead creates a thick beam of "lightning" (lasers) that zaps down ahead of (if you're driving forward) or behind (if you're driving backward) you, with the amount being related to the speed you're moving.  If you are standing still, you will of course hit yourself!
+Shooting instead creates a thick beam of "lightning" (lasers) that zaps down ahead of (if you're driving forward) or behind (if you're driving backward) you, with the amount being related to the speed you're moving.  If you are standing still, you will of course hit yourself!  Note that the lightning bolt can be blocked by buildings above, so a strike on-target does not necessarily guarantee a hit.
 
 | BZDB Variable | Default Value | Effect |
 | ------------- | ------------- | ------ |
 | `_wwLBfactor` | `5.0`         | Scales the distance the beam appears ahead/behind you as a function of your speed. |
 
 Possible variant to implement: the beam always appears ahead of you, but the amount varies by whether you are driving forward or backward.
+
+Admins can invoke a lightning bolt strike with `/smite <player>`.
 
 ### Nyan Cat (NC)
 

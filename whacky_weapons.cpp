@@ -121,7 +121,7 @@ class ShotManagerMemoryLayout { public:
 	#pragma GCC diagnostic pop
 #endif
 
-class WhackyWeapons final : public bz_Plugin {
+class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandler {
 	private:
 		std::vector<bz_BasePlayerRecord*> players;
 		std::map<int,double> players_last_update_times;
@@ -200,6 +200,8 @@ class WhackyWeapons final : public bz_Plugin {
 			Register(bz_eShotFiredEvent   );
 			Register(bz_ePlayerUpdateEvent);
 
+			bz_registerCustomSlashCommand("smite",this);
+
 			{
 				//Anti-Aircraft (AA)
 				bz_RegisterCustomFlag("AA", "Anti-Aircraft", "Bullet fires upward.  Move forward/backward to aim.", 0, eGoodFlag);
@@ -263,6 +265,8 @@ class WhackyWeapons final : public bz_Plugin {
 		}
 		virtual void Cleanup() override {
 			Flush();
+
+			bz_removeCustomSlashCommand("smite");
 
 			bz_removeCustomBZDBVariable("_wwAAdeflect");
 			bz_removeCustomBZDBVariable("_wwAAvelfactor");
@@ -586,6 +590,38 @@ class WhackyWeapons final : public bz_Plugin {
 			}
 
 			for (bz_BasePlayerRecord* player : players) if (player!=nullptr) bz_freePlayerRecord(player);
+		}
+		virtual bool SlashCommand(int from_player_id, bz_ApiString command, bz_ApiString /*message*/, bz_APIStringList *params) {
+			if (command=="smite") {
+				bz_BasePlayerRecord* player = bz_getPlayerByIndex(from_player_id);
+
+				if (player->admin) {
+					char const* target_id = params->get(0).c_str(); //Note safely returns "" if parameter doesn't exist.
+					bz_BasePlayerRecord* target = bz_getPlayerBySlotOrCallsign(target_id);
+					if (target) {
+						// Note we're *attempting* to smite; the smite might miss (e.g. if the target is
+						// protected from above.
+						std::string msg = (std::string)player->callsign + " is smiting " + (std::string)target->callsign + "!";
+						bz_sendTextMessage(BZ_SERVER,BZ_ALLUSERS,bz_eMessageType::eActionMessage,msg.c_str());
+
+						fvec3 target_pos, target_vel; float target_rot;
+						estimate_player_state_at_time(target,bz_getCurrentTime(),&target_pos,&target_vel,&target_rot);
+						fire_smite(from_player_id,target_pos);
+
+						bz_freePlayerRecord(target);
+					} else {
+						bz_sendTextMessagef(BZ_SERVER,from_player_id,bz_eMessageType::eActionMessage,"Error: player \"%s\" not found.",target_id);
+					}
+				} else {
+					bz_sendTextMessage(BZ_SERVER,from_player_id,bz_eMessageType::eActionMessage,"Error: only admins can run /smite.");
+				}
+
+				bz_freePlayerRecord(player);
+
+				return true;
+			}
+
+			return false;
 		}
 
 		void estimate_player_state_at_time( bz_BasePlayerRecord const* player, double time_now, fvec3* player_pos,fvec3* player_vel,float* player_rotation ) {
