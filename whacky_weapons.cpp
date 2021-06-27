@@ -539,7 +539,7 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 
 						float factor = static_cast<float>(bz_getBZDBDouble("_wwLBfactor"));
 						fvec3 pos = player_pos+fvec3(factor*fvec2(player_vel[0],player_vel[1]),0.0f);
-						fire_smite(player->playerID,pos,"LB");
+						fire_smite(player->playerID,fvec3(pos.xy(),0.0f),"LB");
 					}
 					/*else if (current_flag=="MR") {
 						//TODO
@@ -649,7 +649,7 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 
 						fvec3 target_pos, target_vel; float target_rot;
 						estimate_player_state_at_time(target,bz_getCurrentTime(),&target_pos,&target_vel,&target_rot);
-						fire_smite(from_player_id,target_pos,"smite");
+						fire_smite(from_player_id,fvec3(target_pos.xy(),0.0f),"smite");
 
 						bz_freePlayerRecord(target);
 					} else {
@@ -723,6 +723,16 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 		uint32_t fire_laser    ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed                   ) {
 			return fire_something( from_player_id, color, "L",ww_type, pos,vel_dived_by_bzdb_shotspeed );
 		}
+		uint32_t fire_laser_to ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos0,fvec3 const& pos1                                         ) {
+			/*
+			The length of a laser given a `<vector>` is exactly:
+				`<vector's length> * _laserAdVel * _shotSpeed * 0.35`
+			It is not clear why this is, but it means that if we want to make the laser go exactly
+			`<vector length>`, then we need to divide the vector we pass in by:
+				`_laserAdVel * _shotSpeed * 0.35`
+			*/
+			return fire_laser( from_player_id, color, ww_type, pos0, (pos1-pos0)/(float)( bz_getBZDBDouble("_laserAdVel") * bz_getBZDBDouble("_shotSpeed") * 0.35 ) );
+		}
 		uint32_t fire_gm       ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos,fvec3 const& vel_dived_by_bzdb_shotspeed, int at_player_id ) {
 			return fire_something( from_player_id, color, "GM",ww_type, pos,vel_dived_by_bzdb_shotspeed, at_player_id );
 		}
@@ -732,25 +742,30 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 		void     fire_smite( int from_player_id, fvec3 const& pos, char const* ww_type ) {
 			//Makes a "thick" bunch of lasers firing downward
 
+			#define WW_SMITE_HEIGHT 15.0f //Height above ground laser will start
+			#define WW_SMITE_NUM_L   8    //Number of lasers to use in beam
+
+			//Points spaced around circle
+			fvec2 circle_points[WW_SMITE_NUM_L];
+			for (int i=0;i<WW_SMITE_NUM_L;++i) {
+				float angle = (float)i * ( (1.0f/(float)WW_SMITE_NUM_L) * 2.0f*PI );
+				circle_points[i] = fvec2( std::cos(angle), std::sin(angle) );
+			}
+
 			auto draw_laser_between = [&](fvec3 const& relp0,fvec3 const& relp1) -> void {
-				fire_laser( from_player_id, bz_eTeamType::eRogueTeam, ww_type, pos+relp0,relp1-relp0 );
+				fire_laser_to( from_player_id, bz_eTeamType::eRogueTeam, ww_type, pos+relp0,pos+relp1 );
 			};
 
-			//Length that the laser needs to be so that the laser exactly reaches from sky to ground.
-			float vec_length = static_cast<float>( bz_getBZDBDouble("_laserAdVel") );// / bz_getBZDBDouble("_shotSpeed") );
-			//Height above the ground that corresponds to
-			float height = std::sqrt( vec_length*vec_length - 0.5857864376f ); //sqrt(2) - 2
-
-			for (int i=0;i<8;++i) {
-				float angle0  = (float)i * ( 0.125f * 2.0f*PI );
-				float angle1a = angle0 - 0.25f*PI;
-				float angle1b = angle0 + 0.25f*PI;
-				fvec3 relp0  = fvec3( std::cos(angle0 ),std::sin(angle0 ), height );
-				fvec3 relp1a = fvec3( std::cos(angle1a),std::sin(angle1a),   0.0f );
-				fvec3 relp1b = fvec3( std::cos(angle1b),std::sin(angle1b),   0.0f );
+			for (int i=0;i<WW_SMITE_NUM_L;++i) {
+				fvec3 relp0  = fvec3( circle_points[ i                                    ], WW_SMITE_HEIGHT );
+				fvec3 relp1a = fvec3( circle_points[(i+(-1+WW_SMITE_NUM_L))%WW_SMITE_NUM_L],            0.0f );
+				fvec3 relp1b = fvec3( circle_points[(i+(+1               ))%WW_SMITE_NUM_L],            0.0f );
 				draw_laser_between(relp0,relp1a);
 				draw_laser_between(relp0,relp1b);
 			}
+
+			#undef WW_SMITE_NUM_L
+			#undef WW_SMITE_HEIGHT
 		}
 
 		void cancel_firing_shot(bz_ShotFiredEventData_V1* data) {
