@@ -1,5 +1,5 @@
 /*
-	Agatha, 2020–2021
+	Agatha, 2020ï¿½2021
 
 	MIT License.
 
@@ -538,8 +538,8 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 						cancel_firing_shot(data);
 
 						float factor = static_cast<float>(bz_getBZDBDouble("_wwLBfactor"));
-						fvec3 pos = player_pos+fvec3(factor*fvec2(player_vel[0],player_vel[1]),100.0f);
-						fire_smite(player->playerID,pos);
+						fvec3 pos = player_pos+fvec3(factor*fvec2(player_vel[0],player_vel[1]),0.0f);
+						fire_smite(player->playerID,pos,"LB");
 					}
 					/*else if (current_flag=="MR") {
 						//TODO
@@ -617,9 +617,12 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 					uint32_t shot_guid = bz_getShotGUID(data->killerID, data->shotID);
 
 					if (bz_shotHasMetaData(shot_guid,"wwType")) {
-						//std::string weapon = bz_getShotMetaDataS(shot_guid, "wwType");
-
 						data->killerID = bz_getShotMetaDataI(shot_guid, "owner");
+
+						std::string weapon = bz_getShotMetaDataS(shot_guid, "wwType");
+						if (weapon=="smite") {
+							bz_sendTextMessagef(BZ_SERVER,data->playerID,bz_eMessageType::eChatMessage,"You have been smitten by %s.",bz_getPlayerCallsign(data->killerID));
+						}
 					}
 
 					break;
@@ -635,8 +638,9 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 				bz_BasePlayerRecord* player = bz_getPlayerByIndex(from_player_id);
 
 				if (player->admin) {
-					char const* target_id = params->get(0).c_str(); //Note safely returns "" if parameter doesn't exist.
-					bz_BasePlayerRecord* target = bz_getPlayerBySlotOrCallsign(target_id);
+					std::string target_id = params->get(0); //Note safely returns "" if parameter doesn't exist.
+					//printf("Target ID: \"%s\"",target_id.c_str());
+					bz_BasePlayerRecord* target = bz_getPlayerBySlotOrCallsign(target_id.c_str());
 					if (target) {
 						// Note we're *attempting* to smite; the smite might miss (e.g. if the target is
 						// protected from above.
@@ -645,11 +649,11 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 
 						fvec3 target_pos, target_vel; float target_rot;
 						estimate_player_state_at_time(target,bz_getCurrentTime(),&target_pos,&target_vel,&target_rot);
-						fire_smite(from_player_id,target_pos);
+						fire_smite(from_player_id,target_pos,"smite");
 
 						bz_freePlayerRecord(target);
 					} else {
-						bz_sendTextMessagef(BZ_SERVER,from_player_id,bz_eMessageType::eActionMessage,"Error: player \"%s\" not found.",target_id);
+						bz_sendTextMessagef(BZ_SERVER,from_player_id,bz_eMessageType::eActionMessage,"Error: player \"%s\" not found.",target_id.c_str());
 					}
 				} else {
 					bz_sendTextMessage(BZ_SERVER,from_player_id,bz_eMessageType::eActionMessage,"Error: only admins can run /smite.");
@@ -725,15 +729,15 @@ class WhackyWeapons final : public bz_Plugin, public bz_CustomSlashCommandHandle
 		uint32_t fire_sw       ( int from_player_id, bz_eTeamType color, char const* ww_type, fvec3 const& pos ) {
 			return fire_something( from_player_id, color, "SW",ww_type, pos,fvec3(0.0f,0.0f,0.0f) );
 		}
-		void     fire_smite( int from_player_id, fvec3 const& pos ) {
+		void     fire_smite( int from_player_id, fvec3 const& pos, char const* ww_type ) {
 			//Makes a "thick" bunch of lasers firing downward
 
 			auto draw_laser_between = [&](fvec3 const& relp0,fvec3 const& relp1) -> void {
-				fire_laser( from_player_id, bz_eTeamType::eRogueTeam, "LB", pos+relp0,relp1-relp0 );
+				fire_laser( from_player_id, bz_eTeamType::eRogueTeam, ww_type, pos+relp0,relp1-relp0 );
 			};
 
 			//Length that the laser needs to be so that the laser exactly reaches from sky to ground.
-			float vec_length = static_cast<float>( bz_getBZDBDouble("_laserAdVel") / bz_getBZDBDouble("_shotSpeed") );
+			float vec_length = static_cast<float>( bz_getBZDBDouble("_laserAdVel") );// / bz_getBZDBDouble("_shotSpeed") );
 			//Height above the ground that corresponds to
 			float height = std::sqrt( vec_length*vec_length - 0.5857864376f ); //sqrt(2) - 2
 
